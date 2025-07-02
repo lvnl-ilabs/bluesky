@@ -15,6 +15,11 @@ try:
     print('Successfully loaded legacy performance model')
 except ImportError:
     print('Failed to load BlueSky legacy performance model')
+try:
+    import bluesky.traffic.performance.iLP
+    print('Successfully loaded iLabs performance model')
+except ImportError:
+    print('Failed to load iLabs performance model')
 
 settings.set_variable_defaults(performance_model='openap')
 
