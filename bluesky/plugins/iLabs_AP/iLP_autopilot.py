@@ -11,6 +11,7 @@ from bluesky.core import timed_function
 from bluesky.traffic.performance.iLP.iLP_ESTIMATOR import EEI
 from bluesky.traffic.route import Route
 from bluesky.traffic.performance.iLP.performance import PHASE
+from .descent import Descent
 
 
 def init_plugin():
@@ -57,6 +58,7 @@ class iLP_AP(Autopilot):
             self.dist2accel = np.array([])      # Distance to go to acceleration(decelaration) for turn next waypoint [nm]
             self.swvnavvs = np.array([])        # whether to use given VS or not
             self.vnavvs = np.array([])          # vertical speed in VNAV
+            # self.startdescent = np.array([])    # Start descent switch
 
             # LNAV variables
             self.qdr2wp = np.array([])          # Direction to waypoint from the last time passing was checked
@@ -124,12 +126,13 @@ class iLP_AP(Autopilot):
         self.vs[-n:] = -999.
 
         # Default ToC/ToD logic on
-        self.swtoc[-n:] = True
-        self.swtod[-n:] = True
+        self.swtoc[-n:] = True                 # Default top of climb switch is False
+        self.swtod[-n:] = True                 # Default top of descent switch is False
 
         # VNAV Variables
         self.dist2vs[-n:] = -999.
         self.dist2accel[-n:] = -999.            # Distance to go to (de)/acceleration for turn next waypoint [nm]
+        # self.startdescent[-n:] = False          # Default start descent as False
 
         # LNAV variables
         self.qdr2wp[-n:] = -999.                # Direction to waypoint from the last time passing was checked
@@ -158,8 +161,9 @@ class iLP_AP(Autopilot):
         self.EEI_SPD[-n:] = 0
         self.setspd[-n:] = 0
 
-        # Phase detection and recognition
-        # self.phase[-n:] = None
+        # leg-base descent autopilot
+        self.descentslope[-n:] = 0
+        self.descenttype[-n:] = 0
 
         # Descent path swtich
         self.geodescent[-n:] = False
@@ -194,35 +198,59 @@ class iLP_AP(Autopilot):
         # which a/c reached their ToD command altitude/ cleared altitude
         reached_tod = self.dist2wp < self.dist2vs
         reached_alt = bs.traf.alt - bs.traf.selalt < 10
+        reached_climb = np.where((self.phase < PHASE['CR']) & (self.phase >= PHASE["TO"]), True, False)
 
 
         # ==============================================================================================================
         # VNAV autopilot logic
         # ==============================================================================================================
 
-        # # # start descent if swvnav == True and ToD reached
-        # # self.swtod = np.where(bs.traf.swvnav * reached_tod, True, self.swtod)
-        # # self.swtod = np.where(reached_alt, False, self.swtod)
+        # # start descent if swvnav == True, ToD is reached, at or after cruise phase, reached altitude is false
+        # self.swtod = np.where(bs.traf.swvnav * reached_tod * (self.phase >= PHASE['CR']) *
+        #                       ~reached_alt, True, self.swtod)
         #
         # # start climb if PHASE is before CR
-        # self.swtoc = np.where(bs.traf.swvnav * self.phase < PHASE['CR'], True, False)
+        # self.swtoc = np.where(bs.traf.swvnav * reached_climb, True, False)
         #
-        # # set selected altitude
-        # bs.traf.selalt = np.where(self.swtod, bs.traf.actwp.nextaltco, bs.traf.selalt)      # descent
-        # bs.traf.selalt = np.where(self.swtoc, bs.traf.actwp.nextaltco, bs.traf.selalt)      # climb
+        # # set selected altitude for climb
+        # bs.traf.selalt = np.where(self.swtod, bs.traf.actwp.nextaltco, bs.traf.selalt)
+        #
+        # # set selected altitude for descent
+        # bs.traf.selalt = np.where(self.swtod, bs.traf.actwp.nextaltco, bs.traf.selalt)
         #
         # # first find which type of descent phase each a/c is in
         # idx_climb = np.where(self.descenttype == -1)[0]
         # idx_level = np.where(self.descenttype == 0)[0]
         # idx_perf = np.where(self.descenttype == 1)[0]
         # idx_geo = np.where(self.descenttype == 2)[0]
+        # idx_rate = np.where(self.descenttype == 3)[0]
         #
         # # then determine vertical speed
         # # _____________________________________________Level flight_____________________________________________________
         # self.vs[idx_level] = np.zeros(len(bs.traf.id))[idx_level]
         #
         # # __________________________________________Performance Descent_________________________________________________
-        # # TODO: Check if it is neccessary to not make a self.descent variable
+        # # set vs at -999 m/s, this value will be limited by the performance model
+        # self.vs[idx_perf] = np.where(self.swtod, -999, np.array([0]))[idx_perf]
+        #
+        # # ___________________________________________Geometric descent__________________________________________________
+        # # find difference between desired altitude on glideslope and current altitude
+        # #   used for glideslope tracking with P-controller
+        # des_alt = np.tan(np.radians(self.descentslope)) * self.dist2wp + bs.traf.actwp.nextaltco
+        # d_alt_geo = des_alt - bs.traf.alt
+        # self.vs[idx_geo] = np.where(self.swtod,
+        #                             np.radians(self.descentslope) * bs.traf.gs + d_alt_geo * self.p_gs,
+        #                             np.array([0]))[idx_geo]
+        #
+        # # __________________________________________Fixed rate descent__________________________________________________
+        # self.vs[idx_rate] = bs.traf.selvs[idx_rate]
+        #
+        # #_________________________________________________Climb_________________________________________________________
+        # self.vs[idx_climb] = np.full(len(bs.traf.id),999)[idx_climb]
+        #
+        # # geometric descent is used by performance model to decide on flight strategy
+        # bs.traf.actwp.vs = np.where(np.isin(self.descenttype, [2,3]), self.steepness, -999)
+        # selvs = np.where(abs(bs.traf.selvs) > 0.1, bs.traf.selvs, self.vsdef)       # given in m/s
 
 
         # TU Delft Bleusky Version
@@ -255,8 +283,8 @@ class iLP_AP(Autopilot):
         self.vs = np.where(self.swvnavvs, self.vnavvs, selvs)
         self.alt = np.where(self.swvnavvs, bs.traf.actwp.nextaltco, bs.traf.selalt)
 
-        # # When descending or climbing in VNAV also update altitude command of select/hold mode
-        # bs.traf.selalt = np.where(self.swvnavvs, bs.traf.actwp.nextaltco, bs.traf.selalt)
+        # When descending or climbing in VNAV also update altitude command of select/hold mode
+        bs.traf.selalt = np.where(self.swvnavvs, bs.traf.actwp.nextaltco, bs.traf.selalt)
 
 
 
@@ -299,8 +327,17 @@ class iLP_AP(Autopilot):
         self.qdrturn = qdrturn
         dist2turn = dist2turn * nm
 
-        # # TODO: Implement descent speedschedule
-        # self.descent_speedschedule()
+        # Update speed schedule after cruise phase
+        if self.phase > PHASE['CR']:
+            self.descent_speedschedule(bs.traf.alt)
+
+        # Determine if the speed schedule should be used
+        # if own speed is slower than the speed schedule own speed is used
+        use_speedschedule = (self.spdschedule < bs.traf.actwp.spdcon) * (self.phase > PHASE['CR'])
+        self.spdschedule = np.where(vcasormach2tas(self.spdschedule, bs.traf.alt) >
+                                    (1.01 * vcasormach2tas(bs.traf.selspd, bs.traf.alt)) * (bs.traf.selspd > 1),
+                                    bs.traf.selspd, self.spdschedule)
+
 
         # Where we don't have a turn waypoint, as in turn idx is negative, then put distance
         # as Earth circumference.
@@ -335,8 +372,10 @@ class iLP_AP(Autopilot):
         # Select speed: turn sped, next speed constraint, or current speed constraint
         bs.traf.selspd = np.where(useturnspd,bs.traf.actwp.nextturnspd,
                                   np.where(usenextspdcon, bs.traf.actwp.nextspd,
-                                           np.where((bs.traf.actwp.spdcon>=0)*bs.traf.swvnavspd,bs.traf.actwp.spd,
-                                                                            bs.traf.selspd)))
+                                           np.where((bs.traf.actwp.spdcon>=0)*bs.traf.swvnavspd,
+                                                   np.where(use_speedschedule,self.spdschedule,bs.traf.actwp.spdcon),
+                                                    np.where(bs.traf.swvnavspd & (self.phase > PHASE['CR']),
+                                                                        self.spdschedule,bs.traf.selspd))))
 
         # Temporary override speed when still in old turn
         bs.traf.selspd = np.where(np.logical_and(inoldturn*(bs.traf.actwp.oldturnspd>0.)*bs.traf.swvnavspd*bs.traf.swvnav*bs.traf.swlnav,
@@ -359,6 +398,8 @@ class iLP_AP(Autopilot):
                                               justexitedturn))
 
         bs.traf.selspd = np.where(usecruisespd, self.cspd, bs.traf.selspd)
+
+
         # ==============================================================================================================
 
 
@@ -416,6 +457,7 @@ class iLP_AP(Autopilot):
                 bs.traf.swvnav[i] = True
                 bs.traf.swvnavspd[i] = True
                 self.TOsw[i] = False
+                # Descent(i, 10000, 0, -1)
 
     @timed_function(dt=3)
     def ESTspeeds(self):
@@ -520,7 +562,8 @@ class iLP_AP(Autopilot):
 
 
 
-    def descent_speedschedule(self):
+    def descent_speedschedule(self, alt):
+        # TODO: Make this compatible with OpenAP
         '''
         Function: Calculate the speeds corresponding to the speed schedule of BADA manual 3.10
         For either jet/turboprop or piston aircraft
@@ -530,8 +573,7 @@ class iLP_AP(Autopilot):
         Date: 26/09/2022
         '''
 
-        kts = 0.5144
-        alt = bs.traf.alt / 0.3048
+        alt = alt / ft
 
         # Correction for minimum landing speed
         corr = np.sqrt(bs.traf.perf.mass / bs.traf.perf.mref)
@@ -548,6 +590,7 @@ class iLP_AP(Autopilot):
         l8 = np.where(bs.traf.perf.mmax > 7000, 0.78, 0.82)
 
         # Piston aircraft speeds
+        # TODO: Check the Vdes_i value
         l9 = corr * bs.traf.perf.vmld / kts + 0
         l10 = corr * bs.traf.perf.vmld / kts + 0
         l11 = corr * bs.traf.perf.vmld / kts + 0
@@ -555,7 +598,7 @@ class iLP_AP(Autopilot):
         l13 = bs.traf.perf.casdes2
         l14 = bs.traf.perf.mades
 
-        # Find the segment of each aircraft and obtain correct speed for that segment
+        # Find the segment of Turboprop and Turbofan aircraft and obtain correct speed for that segment
         spds = np.where(alt <= 999, 1, 0) * l1 * kts + \
                np.logical_and(alt > 999, alt <= 1499) * l2 * kts + \
                np.logical_and(alt > 1499, alt <= 1999) * l3 * kts + \
