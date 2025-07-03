@@ -457,7 +457,7 @@ class iLP_AP(Autopilot):
                 bs.traf.swvnav[i] = True
                 bs.traf.swvnavspd[i] = True
                 self.TOsw[i] = False
-                # Descent(i, 10000, 0, -1)
+
 
     @timed_function(dt=3)
     def ESTspeeds(self):

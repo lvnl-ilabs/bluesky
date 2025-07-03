@@ -406,8 +406,8 @@ class iLP(PerfBase):
         cljet = np.logical_and.reduce([climb, self.jet]) * 1
 
         # thrust
-        Tj = self.ctcth1 * (
-                    1 - (bs.traf.alt / ft) / self.ctcth2 + self.ctcth3 * (bs.traf.alt / ft) * (bs.traf.alt / ft))
+        Tj = self.ctcth1 * (1 - (bs.traf.alt / ft) / self.ctcth2 +
+                            self.ctcth3 * (bs.traf.alt / ft) * (bs.traf.alt / ft))
 
         # combine jet and default aircraft
         Tjc = cljet * Tj
@@ -427,10 +427,7 @@ class iLP(PerfBase):
         Tpc = clpiston * Tp
 
         # max climb thrust for futher calculations (equals maximum avaliable thrust)
-        maxthr = Tj * self.jet + Tt * self.turbo + Tp * self.piston
-
-        # ADDED; update max thrust
-        self.maxthr = maxthr
+        self.maxthr = Tj * self.jet + Tt * self.turbo + Tp * self.piston
 
         # 2. level flight: Thr = D.
         Tlvl = level * self.D
@@ -442,19 +439,19 @@ class iLP(PerfBase):
 
         # above Hpdes:
         high = np.array(delh > 0)
-        Tdesh = maxthr * self.ctdesh * np.logical_and.reduce([descent, high])
+        Tdesh = self.maxthr * self.ctdesh * np.logical_and.reduce([descent, high])
 
         # below Hpdes
         low = np.array(delh < 0)
 
         # phase cruise
-        TdeslCR = maxthr * self.ctdesl * np.logical_and.reduce([descent, low, (self.phase == PHASE['CR'])])
+        TdeslCR = self.maxthr * self.ctdesl * np.logical_and.reduce([descent, low, (self.phase == PHASE['CR'])])
         # phase descent
-        TdeslDE = maxthr * self.ctdesl * np.logical_and.reduce([descent, low, (self.phase == PHASE['DE'])])
+        TdeslDE = self.maxthr * self.ctdesl * np.logical_and.reduce([descent, low, (self.phase == PHASE['DE'])])
         # phase approach
-        TdeslAP = maxthr * self.ctdesa * np.logical_and.reduce([descent, low, (self.phase == PHASE['AP'])])
+        TdeslAP = self.maxthr * self.ctdesa * np.logical_and.reduce([descent, low, (self.phase == PHASE['AP'])])
         # phase landing
-        TdeslLD = maxthr * self.ctdesld * np.logical_and.reduce([descent, low, (self.phase == PHASE['LD'])])
+        TdeslLD = self.maxthr * self.ctdesld * np.logical_and.reduce([descent, low, (self.phase == PHASE['LD'])])
         # phase ground: minimum descent thrust as a first approach
         Tgd = np.minimum.reduce([Tdesh, TdeslLD]) * (self.phase == PHASE['GD'])
 
@@ -475,7 +472,7 @@ class iLP(PerfBase):
             T = ((np.sign(bs.traf.az) * bs.traf.aporasas.vs * self.mass * g0) /
                  (self.ESF * np.maximum(bs.traf.eps, bs.traf.tas) * cpred)) + self.D
 
-        self.thrust = np.where(T > maxthr - 1, maxthr - 1, T)
+        self.thrust = np.where(T > self.maxthr - 1, self.maxthr - 1, T)
 
         # Fuel consumption
         # thrust specific fuel consumption - jet
