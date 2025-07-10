@@ -328,8 +328,8 @@ class iLP_AP(Autopilot):
         dist2turn = dist2turn * nm
 
         # Update speed schedule after cruise phase
-        if self.phase > PHASE['CR']:
-            self.descent_speedschedule(bs.traf.alt)
+        #if self.phase > PHASE['CR']:
+        #    self.descent_speedschedule(bs.traf.alt)
 
         # Determine if the speed schedule should be used
         # if own speed is slower than the speed schedule own speed is used
