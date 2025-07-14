@@ -323,3 +323,25 @@ def findall(lst,x):
         except ValueError:
             found = False
     return idx
+
+def txt2altres(txt):
+    """Convert text to altitude in meter: also FL300 => 30000. as float"""
+    # Check for Above/ Below
+
+    geo = False
+    if txt[-1] == "G":
+        geo = True
+        txt = txt[:-1]
+
+    res = "AT"
+    if txt[-1] == "A" or txt[-1] == 'B':
+        txt, res = txt[:-1] , txt[-1]
+
+    # First check for FL otherwise feet
+    try:
+        if txt.upper()[:2] == 'FL' and len(txt) >= 4:       # Syntax check FLxxx or flxx
+            return 100.0 * int(txt[2:]) * ft, res, geo
+        return float(txt) * ft, res, geo
+    except ValueError:
+        pass
+    raise ValueError(f'Could not parse "{txt}" as altitude"')
