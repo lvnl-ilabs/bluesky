@@ -1,0 +1,250 @@
+	two_code	number_code	continent
+0	AF	4	Asia
+1	AX	248	Europe
+2	AL	8	Europe
+3	DZ	12	Africa
+4	AS	16	Oceania
+5	AD	20	Europe
+6	AO	24	Africa
+7	AI	660	North America
+8	AQ	10	Antarctica
+9	AG	28	North America
+10	AR	32	South America
+11	AM	51	Asia
+12	AW	533	North America
+13	AU	36	Oceania
+14	AT	40	Europe
+15	AZ	31	Asia
+16	BS	44	North America
+17	BH	48	Asia
+18	BD	50	Asia
+19	BB	52	North America
+20	BY	112	Europe
+21	BE	56	Europe
+22	BZ	84	North America
+23	BJ	204	Africa
+24	BM	60	North America
+25	BT	64	Asia
+26	BO	68	South America
+27	BQ	535	North America
+28	BA	70	Europe
+29	BW	72	Africa
+30	BV	74	South America
+31	BR	76	South America
+32	IO	86	Africa
+33	VG	92	North America
+34	BN	96	Asia
+35	BG	100	Europe
+36	BF	854	Africa
+37	BI	108	Africa
+38	CV	132	Africa
+39	KH	116	Asia
+40	CM	120	Africa
+41	CA	124	North America
+42	KY	136	North America
+43	CF	140	Africa
+44	TD	148	Africa
+45	CL	152	South America
+46	CN	156	Asia
+47	HK	344	Asia
+48	MO	446	Asia
+49	CX	162	Oceania
+50	CC	166	Oceania
+51	CO	170	South America
+52	KM	174	Africa
+53	CG	178	Africa
+54	CK	184	Oceania
+55	CR	188	North America
+56	CI	384	Africa
+57	HR	191	Europe
+58	CU	192	North America
+59	CW	531	North America
+60	CY	196	Asia
+61	CZ	203	Europe
+62	KP	408	Asia
+63	CD	180	Africa
+64	DK	208	Europe
+65	DJ	262	Africa
+66	DM	212	North America
+67	DO	214	North America
+68	EC	218	South America
+69	EG	818	Africa
+70	SV	222	North America
+71	GQ	226	Africa
+72	ER	232	Africa
+73	EE	233	Europe
+74	SZ	748	Africa
+75	ET	231	Africa
+76	FK	238	South America
+77	FO	234	Europe
+78	FJ	242	Oceania
+79	FI	246	Europe
+80	FR	250	Europe
+81	GF	254	South America
+82	PF	258	Oceania
+83	TF	260	Africa
+84	GA	266	Africa
+85	GM	270	Africa
+86	GE	268	Asia
+87	DE	276	Europe
+88	GH	288	Africa
+89	GI	292	Europe
+90	GR	300	Europe
+91	GL	304	North America
+92	GD	308	North America
+93	GP	312	North America
+94	GU	316	Oceania
+95	GT	320	North America
+96	GG	831	Europe
+97	GN	324	Africa
+98	GW	624	Africa
+99	GY	328	South America
+100	HT	332	North America
+101	HM	334	Oceania
+102	VA	336	Europe
+103	HN	340	North America
+104	HU	348	Europe
+105	IS	352	Europe
+106	IN	356	Asia
+107	ID	360	Asia
+108	IR	364	Asia
+109	IQ	368	Asia
+110	IE	372	Europe
+111	IM	833	Europe
+112	IL	376	Asia
+113	IT	380	Europe
+114	JM	388	North America
+115	JP	392	Asia
+116	JE	832	Europe
+117	JO	400	Asia
+118	KZ	398	Asia
+119	KE	404	Africa
+120	KI	296	Oceania
+121	KW	414	Asia
+122	KG	417	Asia
+123	LA	418	Asia
+124	LV	428	Europe
+125	LB	422	Asia
+126	LS	426	Africa
+127	LR	430	Africa
+128	LY	434	Africa
+129	LI	438	Europe
+130	LT	440	Europe
+131	LU	442	Europe
+132	MG	450	Africa
+133	MW	454	Africa
+134	MY	458	Asia
+135	MV	462	Asia
+136	ML	466	Africa
+137	MT	470	Europe
+138	MH	584	Oceania
+139	MQ	474	North America
+140	MR	478	Africa
+141	MU	480	Africa
+142	YT	175	Africa
+143	MX	484	North America
+144	FM	583	Oceania
+145	MC	492	Europe
+146	MN	496	Asia
+147	ME	499	Europe
+148	MS	500	North America
+149	MA	504	Africa
+150	MZ	508	Africa
+151	MM	104	Asia
+152	NA	516	Africa
+153	NR	520	Oceania
+154	NP	524	Asia
+155	NL	528	Europe
+156	NC	540	Oceania
+157	NZ	554	Oceania
+158	NI	558	North America
+159	NE	562	Africa
+160	NG	566	Africa
+161	NU	570	Oceania
+162	NF	574	Oceania
+163	MK	807	Europe
+164	MP	580	Oceania
+165	NO	578	Europe
+166	OM	512	Asia
+167	PK	586	Asia
+168	PW	585	Oceania
+169	PA	591	North America
+170	PG	598	Oceania
+171	PY	600	South America
+172	PE	604	South America
+173	PH	608	Asia
+174	PN	612	Oceania
+175	PL	616	Europe
+176	PT	620	Europe
+177	PR	630	North America
+178	QA	634	Asia
+179	KR	410	Asia
+180	MD	498	Europe
+181	RE	638	Africa
+182	RO	642	Europe
+183	RU	643	Europe
+184	RW	646	Africa
+185	BL	652	North America
+186	SH	654	Africa
+187	KN	659	North America
+188	LC	662	North America
+189	MF	663	North America
+190	PM	666	North America
+191	VC	670	North America
+192	WS	882	Oceania
+193	SM	674	Europe
+194	ST	678	Africa
+195	SA	682	Asia
+196	SN	686	Africa
+197	RS	688	Europe
+198	SC	690	Africa
+199	SL	694	Africa
+200	SG	702	Asia
+201	SX	534	North America
+202	SK	703	Europe
+203	SI	705	Europe
+204	SB	90	Oceania
+205	SO	706	Africa
+206	ZA	710	Africa
+207	GS	239	South America
+208	SS	728	Africa
+209	ES	724	Europe
+210	LK	144	Asia
+211	PS	275	Asia
+212	SD	729	Africa
+213	SR	740	South America
+214	SJ	744	Europe
+215	SE	752	Europe
+216	CH	756	Europe
+217	SY	760	Asia
+218	TJ	762	Asia
+219	TH	764	Asia
+220	TL	626	Asia
+221	TG	768	Africa
+222	TK	772	Oceania
+223	TO	776	Oceania
+224	TT	780	North America
+225	TN	788	Africa
+226	TR	792	Asia
+227	TM	795	Asia
+228	TC	796	North America
+229	TV	798	Oceania
+230	UG	800	Africa
+231	UA	804	Europe
+232	AE	784	Asia
+233	GB	826	Europe
+234	TZ	834	Africa
+235	UM	581	Oceania
+236	US	840	North America
+237	VI	850	North America
+238	UY	858	South America
+239	UZ	860	Asia
+240	VU	548	Oceania
+241	VE	862	South America
+242	VN	704	Asia
+243	WF	876	Oceania
+244	EH	732	Africa
+245	YE	887	Asia
+246	ZM	894	Africa
+247	ZW	716	Africa
+248	TW	158	Asia
