@@ -1401,6 +1401,8 @@ class Route(Base):
         del acrte.wpspd[wpidx]
         del acrte.wprta[wpidx]
         del acrte.wptype[wpidx]
+        del acrte.wpaltres[wpidx]
+        del acrte.wpstack[wpidx]
         if acrte.iactwp > wpidx:
             acrte.iactwp = max(0, acrte.iactwp - 1)
 
