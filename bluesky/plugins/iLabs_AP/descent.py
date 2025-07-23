@@ -3,17 +3,17 @@ Calculate the attributes needed to determine the descent path of an aircraft, su
 
 Created by: Winand Mathoera
 Date: 31/12/2022
+
 Adapted by: Teun Vleming
 Date: 02/2024
+
 Adapted by: Albert Chou
 Date: 07/2025
 """
 
 import numpy as np
 import bluesky as bs
-from bluesky.tools.aero import ft, kts, gamma, gamma1, gamma2, R, beta, nm, fpm, vcasormach2tas, vcas2tas, vtas2cas, \
-    cas2tas, vcas2mach, g0, vmach2cas, density, vatmos, vcasormach
-from bluesky.traffic.performance.iLP.perfiLP import esf
+from bluesky.tools.aero import ft, kts, gamma, gamma1, gamma2, R, beta, vcasormach2tas,vcas2mach, g0, vatmos
 from bluesky.traffic.performance.iLP.performance import PHASE
 
 class Descent:
@@ -57,12 +57,11 @@ class Descent:
                               for index, i in enumerate(self.segments)])
 
         # Determine Thrust and Drag in each segment and separate into two arrays
-        td = np.array([self.TandD(idx, i, self.tasspeeds[index], self.phase[index]) for
-                       index, i in enumerate(self.segments)], dtype = object)
-        self.thrust, self.drag, data = zip(*td)
+        self.thrust, self.drag, data = zip(*np.array([self.TandD(idx, i, self.tasspeeds[index], self.phase[index]) for
+                       index, i in enumerate(self.segments)], dtype=object))
 
         # Determine rate of descent (RoD) using total energy equation
-        self.rod = ((np.array(self.thrust) - np.array(self.drag)) * self.tasspeeds) / (bs.traf.perf.mass[idx] * g0) * self.esft
+        self.rod = ((np.subtract(self.thrust, self.drag)) * self.tasspeeds) / (bs.traf.perf.mass[idx] * g0) * self.esft
 
         # Determine descent angle
         self.gamma = np.arcsin(self.rod / self.tasspeeds)
@@ -76,13 +75,14 @@ class Descent:
         self.decel_altspd = []
         # format : (alt, new speed, old speed)
         for index, i in enumerate(self.decel_alts):
-            # skip higher altitudes
+            # skip higher altitudes than start_alt and lower altitudes than end_alt
             if i > start_alt or i < end_alt:
                 continue
+            # use segment if own speed is higher
             self.decel_altspd.append((i, self.vsegm[index], self.vsegm[index + 1]))
 
-
-    def descent_speedschedule(self, idx,alt):
+    @staticmethod
+    def descent_speedschedule(idx,alt):
         # TODO: Make this compatible with OpenAP
         '''
         Function: determine CAS based on speed schedule from the BADA manual
@@ -149,31 +149,30 @@ class Descent:
         # Determine difference in altitude
         del_alt = alt - end_alt
 
-        # Descent logic will only be switched on when it reaches Cruise Phase
-
-        # phase CR[4]: alt >= FL100,, delalt <= 0
+        # Descent logic will only be switched on when it reaches cruise phase
+        # hase CR[4]: alt >= FL100,, delalt <= 0
         CR_alt = np.array(alt > (100. * 100 * ft))
         CR_calt = np.array(alt >= calt)
 
         cr = CR_alt * CR_calt * PHASE['CR']
 
-        # phase DE[5]: alt >= FL100, delalt > 0
-        DE_alt = np.array(alt > (100. * 100 * ft))
+        # phase DE[5]: alt >= FL100, delalt >= 0
+        DE_alt = np.array(alt >= (100. * 100 * ft))
         DE_calt = np.array(alt < calt)
-        DE_delalt = np.array(del_alt > 0)
+        DE_delalt = np.array(del_alt >= 0)
 
 
         de = DE_alt * DE_calt * DE_delalt * PHASE['DE']
 
-        # phase AP[6]: 2000 <= alt <= 10000, delalt > 0
-        AP_alt = np.array((alt >= (2000. * ft)) & (alt <= (10000. * ft)))
-        AP_delalt = np.array(del_alt > 0)
+        # phase AP[6]: 2000 <= alt <= 10000, delalt >= 0
+        AP_alt = np.array((alt >= (2000. * ft)) & (alt <= (100. * 100 * ft)))
+        AP_delalt = np.array(del_alt >= 0)
 
         ap = AP_alt * AP_delalt * PHASE['AP']
 
-        # phase LD[7]: alt <=2000, del_alt > 0
+        # phase LD[7]: alt <=2000, del_alt >= 0
         LD_alt = np.array(alt <= (2000. * ft))
-        LD_delalt = np.array(del_alt > 0)
+        LD_delalt = np.array(del_alt >= 0)
 
         ld = LD_alt * LD_delalt * PHASE['LD']
 
@@ -241,12 +240,12 @@ class Descent:
 
         # Determine max. climb thrust for different aircraft types
         # Jet
-        Tj = (bs.traf.perf.ctcth1 *
-              (1 - (alt / ft) / bs.traf.perf.ctcth2 + bs.traf.perf.ctcth3 * (alt / ft) * (alt / ft)))
+        Tj = bs.traf.perf.ctcth1[idx] * (1 - (alt / ft) / bs.traf.perf.ctcth2[idx] +
+                                         bs.traf.perf.ctcth3[idx] * (alt / ft) * (alt / ft))
 
         # Turboprop
-        Tt = (bs.traf.perf.ctcth1[idx] / np.maximum(1., tas / kts) * (1 - (alt / ft) / bs.traf.perf.ctcth2[idx]) +
-              bs.traf.perf.ctcth3[idx])
+        Tt = (bs.traf.perf.ctcth1[idx] / np.maximum(1., tas / kts) *
+              (1 - (alt / ft) / bs.traf.perf.ctcth2[idx]) + bs.traf.perf.ctcth3[idx])
 
         # Piston
         Tp = (bs.traf.perf.ctcth1[idx] * (1 - (alt / ft) / bs.traf.perf.ctcth2[idx]) +
@@ -254,22 +253,24 @@ class Descent:
 
         max_thrust = Tj * bs.traf.perf.jet[idx] + Tt * bs.traf.perf.turbo[idx] + Tp * bs.traf.perf.piston[idx]
 
-        # drag coefficients for phases CR[4] and DE[5] phase are the same
-        cd = bs.traf.perf.cd0cr[idx] + bs.traf.perf.cd2cr * (cl * cl)
-        if delh > 0:    T = max_thrust * bs.traf.perf.ctdesh[idx]
-        else:           T = max_thrust * bs.traf.perf.ctdesl[idx]
+        # Drag coefficients for phases CR[4] and DE[5] phase are the same
+        cd = bs.traf.perf.cd0cr[idx] + bs.traf.perf.cd2cr[idx] * (cl * cl)
+        if delh > 0:        T = max_thrust * bs.traf.perf.ctdesh[idx]
+        else:               T = max_thrust * bs.traf.perf.ctdesl[idx]
 
-        # compute drag coefficient and thrust for phase AP[6]
+        # Compute drag coefficient and thrust for phase AP[6]
         if phase == PHASE['AP']:
-            cd = np.where(bs.traf.perf.cd0ap != 0, bs.traf.perf.cd0ap[idx] + bs.traf.perf.cd2ap[idx] * (cl * cl), cd)
+            cd = float(np.where(bs.traf.perf.cd0ap != 0,
+                                bs.traf.perf.cd0ap[idx] + bs.traf.perf.cd2ap[idx] * (cl * cl), cd))
             if delh <= 0:   T = max_thrust * bs.traf.perf.ctdesa[idx]
 
-        # compute drag coefficient and thrust for phase LD[7]
+        # Compute drag coefficient and thrust for phase LD[7]
         if phase == PHASE['LD']:
-            cd = np.where(bs.traf.perf.cd0ld != 0, bs.traf.perf.cd0ld[idx] + bs.traf.perf.gear[idx] +
-                          bs.traf.perf.cd2ld[idx] * (cl * cl), cd + bs.traf.perf.gear[idx])
+            cd = float(np.where(bs.traf.perf.cd0ld != 0, bs.traf.perf.cd0ld[idx] + bs.traf.perf.gear[idx] +
+                          bs.traf.perf.cd2ld[idx] * (cl * cl), cd + bs.traf.perf.gear[idx]))
             if delh <= 0:   T = max_thrust * bs.traf.perf.ctdesld[idx]
 
+        # Compute Drag
         D = cd * qS
 
         return T, D, [cd, rho, bs.traf.perf.cd0cr[idx], bs.traf.perf.cd2cr[idx], cl, qS]
