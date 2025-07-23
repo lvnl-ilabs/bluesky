@@ -1,6 +1,5 @@
 import numpy as np
-from bluesky.tools.aero import kts, ft, gamma, gamma1, gamma2, R, beta, g0, \
-    vmach2cas
+from bluesky.tools.aero import ft, gamma, gamma1, gamma2, R, beta, g0, vmach2cas
 
 NA = 0      # Unknown phase
 TO = 1      # Take-off
@@ -53,16 +52,16 @@ def phases(alt, roc, spd, bank, bphase, swhdgsel):
     to = TO_alt * TO_roc * TO
 
     #-------------------------------------------------
-    # phase IC[2]: 75 <= alt <= 2000, roc >= 150
+    # phase IC[2]: 75 <= alt <= 2000, roc >= 0
     IC_alt = np.array((alt > (75. * ft)) & (alt <= (2000. * ft)))
-    IC_roc = np.array(roc >= (150. * fpm))
+    IC_roc = np.array(roc >= (0 * fpm))
 
     ic = IC_alt * IC_roc * IC
 
     # -------------------------------------------------
-    # phase CL[3]: alt >= 2000, roc >= 150
+    # phase CL[3]: alt >= 2000, roc >= 0
     CL_alt = np.array(alt > (2000. * ft))
-    CL_roc = np.array(roc > (150. * fpm))
+    CL_roc = np.array(roc > (0 * fpm))
 
     cl = CL_alt * CL_roc * CL
 
@@ -95,16 +94,16 @@ def phases(alt, roc, spd, bank, bphase, swhdgsel):
     de = DE_alt * DE_roc * DE
 
     # -------------------------------------------------
-    # phase AP[6]: 2000 <= alt <= 10000, roc <= -150
+    # phase AP[6]: 2000 <= alt <= 10000, roc <= 0
     AP_alt = np.array((alt >= (2000. * ft)) & (alt <= (10000. * ft)))
-    AP_roc = np.array(roc <= (-150. * fpm))
+    AP_roc = np.array(roc <= (0 * fpm))
 
     ap = AP_alt * AP_roc * AP
 
     # -------------------------------------------------
-    # phase LD[7]: alt <=2000, roc <= 0
+    # phase LD[7]: alt <=2000, roc < 0
     LD_alt = np.array(alt <= (2000. * ft))
-    LD_roc = np.array(roc <= (0 * fpm))
+    LD_roc = np.array(roc < (0 * fpm))
 
     ld = LD_alt * LD_roc * LD
 
@@ -116,7 +115,7 @@ def phases(alt, roc, spd, bank, bphase, swhdgsel):
 
     # -------------------------------------------------
     # combine all phases
-    phase = np.maximum.reduce([to, ic, cl, cr, sc, sd, de, ap, ld, gd])
+    phase = np.maximum.reduce([to, ic, cl, cr, sc, sd, de, ap, ld])
 
     to2 = np.where(phase == TO)
     ic2 = np.where(phase == IC)
@@ -127,7 +126,7 @@ def phases(alt, roc, spd, bank, bphase, swhdgsel):
     de2 = np.where(phase == DE)
     ap2 = np.where(phase == AP)
     ld2 = np.where(phase == LD)
-    gd2 = np.where(phase == GD)
+    # gd2 = np.where(phase == GD)
 
     # assign aircraft to their nominal bank angle per phase
     bank[to2] = bphase[0]
@@ -139,7 +138,7 @@ def phases(alt, roc, spd, bank, bphase, swhdgsel):
     bank[de2] = bphase[4]
     bank[ap2] = bphase[5]
     bank[ld2] = bphase[6]
-    bank[gd2] = bphase[7]
+    # bank[gd2] = bphase[7]
 
     # not turning aircraft do not have a bank angle
     noturn = np.array(swhdgsel) * 100
@@ -241,8 +240,8 @@ def calclimits(desspd, gs, to_spd, vmin, vmo, mmo, M, alt, hmaxact,
 
     # thrust and vertical speed
     Thr_corrected   = np.where((Thr > maxthr-1.0), maxthr-1., Thr)
-    limvs = np.where((Thr >maxthr-1.0), ((Thr_corrected - D) * tas) / (mass * g0)* ESF, -9999.0)
-    limvs_flag = np.where(limvs > -9999.0 , True, False)
+    limvs = ((Thr_corrected - D) * tas) / (mass * g0)* ESF
+    limvs_flag = True
 
     # aircraft can only take-off as soon as their speed is above v_rotate
     # True means that current speed is below rotation speed
