@@ -15,7 +15,7 @@
 
 # virtual environment
 venv
-
+.bluesky
 # PyBuilder
 target/
 
