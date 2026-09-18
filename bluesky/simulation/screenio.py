@@ -9,7 +9,7 @@ from bluesky.core import Entity
 from bluesky.tools import aero
 from bluesky.core.walltime import Timer
 from bluesky.network.publisher import state_publisher, StatePublisher
-
+from bluesky.network import context as ctx
 
 # =========================================================================
 # Settings
@@ -18,7 +18,7 @@ from bluesky.network.publisher import state_publisher, StatePublisher
 SIMINFO_RATE = 1
 
 # Update rate of aircraft update messages [Hz]
-ACUPDATE_RATE = 5
+ACUPDATE_RATE = 1
 
 
 class ScreenIO(Entity):
@@ -26,6 +26,7 @@ class ScreenIO(Entity):
 
     pub_defwpt = StatePublisher('DEFWPT', collect=True)
     pub_route = StatePublisher('ROUTEDATA')
+    pub_acodroutes = StatePublisher('ACODROUTES')
 
     # =========================================================================
     # Functions
@@ -53,6 +54,9 @@ class ScreenIO(Entity):
         self.slow_timer = Timer(1000 // SIMINFO_RATE)
         self.slow_timer.timeout.connect(self.send_siminfo)
         self.slow_timer.timeout.connect(self.send_route_data)
+        self.slow_timer.timeout.connect(self.send_acod_routes)
+        self.acod_pairs = dict()
+        self._acod_subscribed = False
 
     def update(self):
         if bs.sim.state == bs.OP:
@@ -177,6 +181,15 @@ class ScreenIO(Entity):
         data['asastas']  = bs.traf.cr.tas
         data['asastrk']  = bs.traf.cr.trk
 
+        # Track label data for semi-realistic labels through feeder
+        data['type'] = bs.traf.type #aircraft type
+        data['dest'] = bs.traf.ap.dest #destination airport
+        data['selalt'] = bs.traf.selalt #cleared/selected altitude
+        data['selspd'] = bs.traf.selspd #cleared/selected speed
+        data['aphdg'] = bs.traf.ap.trk #assigned heading
+        data['swlnav'] = bs.traf.swlnav #True = following own
+        data['swvnavspd'] = bs.traf.swvnavspd #True = following own speed
+
         # Aircraft (group) color
         if self.custacclr:
             data['custacclr'] = self.custacclr
@@ -223,3 +236,40 @@ class ScreenIO(Entity):
             data['wpname'] = route.wpname
 
         self.pub_route.send_replace((sender or b'C'), **data)
+
+    def on_acod_request(self, acid1, acid2):
+        '''Toggle a 2-aircraft ACOD route comparison for the requesting client.'''
+        sender = ctx.sender_id
+        pairs = self.acod_pairs.setdefault(sender, set())
+        key = frozenset((acid1, acid2))
+        if key in pairs:
+            pairs.discard(key)
+        else:
+            pairs.add(key)
+
+    def send_acod_routes(self):
+        ''' Send route data for all armed ACOD pairs to each requesting client. '''
+        if not self._acod_subscribed and bs.net is not None:
+            bs.net.subscribe(b'ACODREQUEST').connect(self.on_acod_request)
+            self._acod_subscribed = True
+        for sender, pairs in self.acod_pairs.items():
+            pair_list = []
+            for pair in pairs:
+                acid1, acid2 = tuple(pair)
+                entry = dict()
+                ok = True
+                for label, acid in (('a', acid1), ('b', acid2)):
+                    idx = bs.traf.id2idx(acid)
+                    if idx < 0:
+                        ok = False
+                        break
+                    route = bs.traf.ap.route[idx]
+                    entry[f'{label}acid']   = acid
+                    entry[f'{label}lat']    = bs.traf.lat[idx]
+                    entry[f'{label}lon']    = bs.traf.lon[idx]
+                    entry[f'{label}wplat']  = route.wplat
+                    entry[f'{label}wplon']  = route.wplon
+                    entry[f'{label}iactwp'] = route.iactwp
+                if ok:
+                    pair_list.append(entry)
+            self.pub_acodroutes.send_replace(sender, pairs=pair_list)
