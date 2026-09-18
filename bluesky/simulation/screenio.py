@@ -184,6 +184,7 @@ class ScreenIO(Entity):
         # Track label data for semi-realistic labels through feeder
         data['type'] = bs.traf.type #aircraft type
         data['dest'] = bs.traf.ap.dest #destination airport
+        data['orig'] = bs.traf.ap.orig #origin airport
         data['selalt'] = bs.traf.selalt #cleared/selected altitude
         data['selspd'] = bs.traf.selspd #cleared/selected speed
         data['aphdg'] = bs.traf.ap.trk #assigned heading
