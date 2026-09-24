@@ -1,0 +1,78 @@
+# ACOD demo: two contrasting pairs for the manual route-comparison tool
+# (shift-click two aircraft in AirTrafficRadar to arm/disarm it), plus one
+# uninvolved background flight.
+#
+# Pair 1 - KLM1074 & TRA53J: both routed via ARTIP then EHAM, same FL200.
+#          Their remaining routes actually meet at ARTIP, so once armed,
+#          ACOD's closest-approach marker collapses to a single point there
+#          (0 NM). ASAS/RESO are on, so this pair also trips automatic STCA
+#          (amber, blinking) shortly before ARTIP - compare that against the
+#          manually-armed ACOD pink lines on the same two aircraft.
+#
+# Pair 2 - EZY81H & WZZ22P: parallel tracks, 12 NM apart, FL280 vs FL310.
+#          Their routes never meet, so ACOD draws a dashed connector with a
+#          real, constant ~12 NM length instead of collapsing to a point -
+#          even though the two are already vertically separated too.
+#
+# IBE31M is unrelated background traffic - ACOD stays empty for it since the
+# display only ever shows the pair you've actually shift-clicked.
+#
+# Only one pair can be armed at a time: to switch pairs, shift-click one
+# current member again first (this disarms and frees the slot) before
+# shift-clicking a new aircraft.
+
+00:00:00.00>ASAS ON
+00:00:00.00>RESO OFF
+00:00:00.00>PAN 52.1,4.7
+
+# --- Pair 1: converge on ARTIP, FL200 ---
+
+# KLM1074 EDDF-EHAM, inbound to ARTIP from the east
+00:00:00.00>CRE KLM1074,B738,52.3842,6.6989,280,FL200,285
+00:00:00.00>ORIG KLM1074,EDDF
+00:00:00.00>ADDWPT KLM1074,ARTIP
+00:00:00.00>DEST KLM1074,EHAM
+00:00:00.00>DIRECT KLM1074,ARTIP
+00:00:00.00>LNAV KLM1074,ON
+00:00:00.00>VNAV KLM1074,ON
+
+# TRA53J LFPG-EHAM, inbound to ARTIP from the south
+00:00:00.00>CRE TRA53J,A320,51.8526,5.1814,020,FL200,280
+00:00:00.00>ORIG TRA53J,LFPG
+00:00:00.00>ADDWPT TRA53J,ARTIP
+00:00:00.00>DEST TRA53J,EHAM
+00:00:00.00>DIRECT TRA53J,ARTIP
+00:00:00.00>LNAV TRA53J,ON
+00:00:00.00>VNAV TRA53J,ON
+
+# --- Pair 2: parallel, non-crossing, 12 NM apart ---
+
+# EZY81H EGLL-EDDB, northern track, FL280
+00:00:00.00>CRE EZY81H,A320,52.2000,3.0000,090,FL280,280
+00:00:00.00>ORIG EZY81H,EGLL
+00:00:00.00>ADDWPT EZY81H,52.2000,4.2000,FL280
+00:00:00.00>DEST EZY81H,EDDB
+00:00:00.00>DIRECT EZY81H,EZY81H001
+00:00:00.00>LNAV EZY81H,ON
+00:00:00.00>VNAV EZY81H,ON
+
+# WZZ22P EGKK-EDDK, southern track, FL310 - stays 12 NM south of EZY81H
+00:00:00.00>CRE WZZ22P,A321,52.0000,3.0000,090,FL310,280
+00:00:00.00>ORIG WZZ22P,EGKK
+00:00:00.00>ADDWPT WZZ22P,52.0000,4.2000,FL310
+00:00:00.00>DEST WZZ22P,EDDK
+00:00:00.00>DIRECT WZZ22P,WZZ22P001
+00:00:00.00>LNAV WZZ22P,ON
+00:00:00.00>VNAV WZZ22P,ON
+
+# --- Background traffic (uninvolved) ---
+
+# IBE31M EHRD-LEMG
+00:00:00.00>CRE IBE31M,E190,51.6151,4.5272,206,FL230,275
+00:00:00.00>ORIG IBE31M,EHRD
+00:00:00.00>ADDWPT IBE31M,KUDAD
+00:00:00.00>ADDWPT IBE31M,WOODY
+00:00:00.00>DEST IBE31M,LEMG
+00:00:00.00>DIRECT IBE31M,WOODY
+00:00:00.00>LNAV IBE31M,ON
+00:00:00.00>VNAV IBE31M,ON

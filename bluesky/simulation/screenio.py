@@ -199,6 +199,26 @@ class ScreenIO(Entity):
 
         return data
 
+    @state_publisher(topic='LISTDATA', dt=1000 // SIMINFO_RATE)
+    def send_list_data(self):
+        ''' Data for the radar-screen lists. Separate topic because a list doesn't
+            have one entry per aircraft, like ACDATA does. '''
+        data = dict()
+
+        #STCA-list: every conflict pair once, with time to CPA [s] and distance at CPA [m].
+        #confpairs holds each pair twice, (A, B) and (B, A), with the same tcpa/dcpa
+        stca = []
+        seen = set()
+        for (acid1, acid2), tcpa, dcpa in zip(bs.traf.cd.confpairs, bs.traf.cd.tcpa, bs.traf.cd.dcpa):
+            pair = frozenset((acid1, acid2))
+            if pair in seen:
+                continue
+            seen.add(pair)
+            stca.append({'acid1':acid1, 'acid2':acid2, 'tcpa':tcpa, 'dcpa':dcpa})
+        data['stca'] = stca
+
+        return data
+
     def send_route_data(self):
         ''' Send route data to client(s) '''
         # Case 1: A route is selected by one or more specific clients
