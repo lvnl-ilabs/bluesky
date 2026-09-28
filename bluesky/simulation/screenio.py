@@ -6,7 +6,7 @@ import numpy as np
 import bluesky as bs
 from bluesky import stack
 from bluesky.core import Entity
-from bluesky.tools import aero
+from bluesky.tools import aero, geo
 from bluesky.core.walltime import Timer
 from bluesky.network.publisher import state_publisher, StatePublisher
 from bluesky.network import context as ctx
@@ -216,6 +216,24 @@ class ScreenIO(Entity):
             seen.add(pair)
             stca.append({'acid1':acid1, 'acid2':acid2, 'tcpa':tcpa, 'dcpa':dcpa})
         data['stca'] = stca
+
+        #Stack lists: sim clock in seconds of the day, and per aircraft its remaining waypoints
+        #with the time to go to each [s], along the route at the current ground speed
+        utc = bs.sim.utc
+        data['utc'] = utc.hour * 3600 + utc.minute * 60 + utc.second
+
+        routes = []
+        for i, acid in enumerate(bs.traf.id):
+            route = bs.traf.ap.route[i]
+            names, tto = [], []
+            if 0 <= route.iactwp < route.nwp:
+                lat = np.append(bs.traf.lat[i], route.wplat[route.iactwp:])
+                lon = np.append(bs.traf.lon[i], route.wplon[route.iactwp:])
+                dist = np.cumsum(geo.kwikdist(lat[:-1], lon[:-1], lat[1:], lon[1:])) * aero.nm
+                names = route.wpname[route.iactwp:]
+                tto = (dist / max(bs.traf.gs[i], 1.0)).tolist()
+            routes.append({'acid':acid, 'dest':bs.traf.ap.dest[i], 'wpname':names, 'tto':tto})
+        data['routes'] = routes
 
         return data
 
